@@ -1,0 +1,8 @@
+&share
+ wrf_core = 'ARW',
+ max_dom = 2,
+ start_date = 'STARTDATE','STARTDATE','STARTDATE',
+ end_date   = 'ENDDATE','ENDDATE','ENDDATE',
+ interval_seconds = 21600
+ io_form_geogrid = 2,
+/

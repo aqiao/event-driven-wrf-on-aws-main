@@ -1,0 +1,72 @@
+Region: {REGION: ''}
+Image:
+  Os: alinux2
+  CustomAmi: ami-0a7309444dfeeb105
+Tags:
+  - Key: Purpose
+    Value: Event Driven Weather Forecast
+HeadNode:
+  InstanceType: c6a.xlarge
+  Networking:
+    SubnetId: {SUBNET: ''}
+    AdditionalSecurityGroups: !!seq
+      - {SLURM: ''}
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonFSxFullAccess
+      - Policy: arn:aws:iam::aws:policy/SecretsManagerReadWrite
+      - Policy: arn:aws:iam::aws:policy/AmazonSNSFullAccess
+      - Policy: arn:aws:iam::880755836258:policy/KMSALL
+  Ssh:
+    KeyName: us-east-2
+  LocalStorage:
+    RootVolume:
+      Size: 50
+  CustomActions:
+    OnNodeConfigured:
+      Script: https://raw.githubusercontent.com/nwcd-solutions/wrf-on-aws/master/pc_setup_scripts/post_install_amd.sh
+      Args: !!seq
+        - {REGION: ''}
+        - {SNS: ''}
+        - {FTIME: ''}
+        - {JWT: ''}
+        - {BUCKET_NAME: ''}
+        - {FORECASTDAYS: ''}
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: general
+      ComputeResources:
+        - Name: hpc6a
+          InstanceType: hpc6a.48xlarge
+          MinCount: 0
+          MaxCount: 100
+          Efa:
+            Enabled: true
+      Networking:
+        SubnetIds: !!seq
+          - {SUBNET: ''}
+        PlacementGroup:
+          Enabled: true
+      Iam:
+        S3Access:
+          - BucketName: {BUCKET_NAME: ''}
+            EnableWriteAccess: true
+SharedStorage:
+  - Name: Ebs0
+    StorageType: Ebs
+    MountDir: /apps
+    EbsSettings:
+      VolumeType: gp3
+      DeletionPolicy: Delete
+      Size: '200'
+      Encrypted: false
+      SnapshotId: snap-0b3dfa4d4485115e6
+  - Name: Efs1
+    StorageType: Efs
+    MountDir: /fsx
+    EfsSettings:
+      ThroughputMode: bursting
+

@@ -1,0 +1,28 @@
+&time_control
+ run_days                            = 0,
+ run_hours                           = FORECAST_HOUR,
+ run_minutes                         = 0,
+ run_seconds                         = 0,
+ start_year                          = START_YEAR, START_YEAR, START_YEAR,
+ start_month                         = START_MONTH,   START_MONTH,  START_MONTH,  
+ start_day                           = START_DAY,   START_DAY,  START_DAY, 
+ start_hour                          = START_HOUR,   START_HOUR,  START_HOUR, 
+ start_minute                        = 00,   00,  00,
+ start_second                        = 00,   00,   00,
+ end_year                            = END_YEAR, END_YEAR, END_YEAR,
+ end_month                           = END_MONTH,   END_MONTH,  END_MONTH, 
+ end_day                             = END_DAY,   END_DAY,  END_DAY,
+ end_hour                            = END_HOUR,   END_HOUR,  END_HOUR,
+ end_minute                          = 00,   00,  00,
+ end_second                          = 00,   00,  00, 
+ interval_seconds                    = 21600
+ input_from_file                     = .true.,.true.,.true.,
+ history_interval                    = 60,  15,   60,
+ frames_per_outfile                  = 24, 4, 1000,
+ restart                             = .false.,
+ restart_interval                    = 7200,
+ io_form_history                     = 2
+ io_form_restart                     = 2
+ io_form_input                       = 2
+ io_form_boundary                    = 2
+ /
