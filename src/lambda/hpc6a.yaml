@@ -18,9 +18,9 @@ HeadNode:
       - Policy: arn:aws:iam::aws:policy/AmazonFSxFullAccess
       - Policy: arn:aws:iam::aws:policy/SecretsManagerReadWrite
       - Policy: arn:aws:iam::aws:policy/AmazonSNSFullAccess
-      - Policy: arn:aws:iam::880755836258:policy/KMSALL
+      - Policy: arn:aws:iam::031676545771:policy/KMSALL
   Ssh:
-    KeyName: us-east-2
+    KeyName: nwcd-global-ohio
   LocalStorage:
     RootVolume:
       Size: 50

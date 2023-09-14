@@ -262,9 +262,18 @@ build_dir(){
      echo $i
      jobdir="domain_"$i
      echo $jobdir
-     mkdir -p $jobdir/run
+     # It's required to use date as subfix as post handling need
+     mkdir -p $jobdir/run/$start_date
+     echo "wrf home: ${jobdir}/run/$start_date"
+     # create post-handle related folder
+     mkdir -p $jobdir/post/gfs_cut
+     mkdir -p $jobdir/post/gfs_netcdf
+     mkdir -p $jobdir/post/gfs_excel
+     mkdir -p $jobdir/post/log
+     mkdir -p $jobdir/post/record
+     # create pre-proc folder
      mkdir -p $jobdir/preproc
-     echo $bucket_name
+     echo "bucket name ${bucket_name}"
      aws s3 cp s3://${bucket_name}/input/$jobdir/namelist.wps $jobdir/preproc/
      sed -i 's/STARTDATE/'"${start_date}"'/g' $jobdir/preproc/namelist.wps
      sed -i 's/ENDDATE/'"${end_date}"'/g' $jobdir/preproc/namelist.wps
@@ -294,6 +303,8 @@ build_dir(){
      ln -s ${WRF_DIR}/main/tc.exe  $jobdir/run/tc.exe
      ln -s ${WRF_DIR}/main/ndown.exe  $jobdir/run/ndown.exe  
   done
+  mkdir -p $jobdir/post-scripts
+  aws s3 cp s3://$2/input/post-scripts/* $jobdir/post-scripts/
   mkdir downloads
   gfs="gfs"
   gfs=$gfs.$y$m$d

@@ -120,6 +120,8 @@ def run_wrf(zone,pid):
         script = f.read()
     script += f"\naws s3 cp ../slurm-${{SLURM_JOB_ID}}.out {output}/logs/\n"
     script += f"\naws s3 cp . {output}/wrfout/ --recursive --exclude \"*\" --include \"wrfout_*\"\n"
+    # log wrf out dir to text file to guarantee post handling can find this path
+    # we can't use date variable to get this path since it may cross day when post running
     template["job"]["name"] = "wrf_" + zone
     template["job"]["nodes"] = 2 
     template["job"]["cpus_per_task"] = 4
@@ -131,26 +133,34 @@ def run_wrf(zone,pid):
     return submit(template)
     
 
-def post(pid):
-    with open("jobs/post.sh", "r") as f:
-        script = f.read()
-    script += f"\naws s3 cp --no-progress ${{grib}} {output}/${{grib}}"
-    script += f"\naws s3 cp slurm-${{SLURM_JOB_ID}}.out {output}/logs/slurm-${{SLURM_JOB_ID}}.out\n"
+# 当前工作目录是 /fsx吗
+def post(zone, jid):
+    global bucket
+    global ftime
+    y=ftime[0:4]
+    m=ftime[5:7]
+    d=ftime[8:10]
+    h=ftime[11:13]
+    output = f"s3://{bucket}/outputs/{y}/{m}/{d}/{h}/{zone}"
+    # with open("jobs/post.sh", "r") as f:
+    #     script = f.read()
+    # script += f"\naws s3 cp --no-progress ${{grib}} {output}/${{grib}}"
+    # script += f"\naws s3 cp slurm-${{SLURM_JOB_ID}}.out {output}/logs/slurm-${{SLURM_JOB_ID}}.out\n"
     template["job"]["nodes"] = 1
-    jids = []
-    for i in range(0, 7):
-        template["job"]["name"] = f"post-{i:03}"
-        template["job"]["dependency"] = f"afterok:{pid}"
-        template["job"]["current_working_directory"] = f"/fsx/run/post/{i:02}"
-        template["script"] = script
-        print(template)
-        jids.append(submit(template))
-    return jids
-
+    template["job"]["name"] = f"post_"+zone
+    template["job"]["dependency"] = f"afterok:{jid}"
+    # 当前生成的路径是不是 /fsx/2023-09-12-01/run
+    template["job"]["current_working_directory"] = f"/fsx/{zone}/post-scripts/"
+    # download post scripts to efs path
+    script = f"python3 /fsx/post-scripts/process_gfs.py /fsx/{zone} {output}"
+    # script += f"\naws s3 cp ../slurm-${{SLURM_JOB_ID}}.out {output}/logs/\n"
+    # script += f"\naws s3 cp /fsx/{zone}/post {output}/post/ --recursive \n"
+    template["script"] = script
+    print(template)
+    return submit(template)
 
 
 def main(event, context):
-
     global ip
     global job_num
     global ftime
@@ -161,6 +171,7 @@ def main(event, context):
     print(ip)
     pids=[]
     jids=[]
+    lids=[]
 
     for i in range(1,job_num+1):
         n='domain_'+str(i)
@@ -168,4 +179,7 @@ def main(event, context):
     for i in range(1,job_num+1):
         n='domain_'+str(i)
         jids.append(run_wrf(n,pids[i-1]))
-    fini(jids)
+    for i in range(1,job_num+1):
+        n='domain_'+str(i)
+        lids.append(post(n,jids[i-1]))
+    fini(lids)

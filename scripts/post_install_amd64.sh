@@ -222,6 +222,7 @@ download_wrf_install_package() {
   chown -R ec2-user:ec2-user ${shared_folder}
 }
 
+
 build_dir(){
   ftime=$1
   bucket=$2
@@ -229,7 +230,8 @@ build_dir(){
   m=${ftime:5:2}
   d=${ftime:8:2}
   h=${ftime:11:2}
-  jobdir=$y-$m-$d-$h
+#  jobdir=$y-$m-$d-$h
+  jobdir=$y-$m-$d
   job_array=("shandong" "xinjiang" "neimeng" "gansu")
   start_date=$y-$m-$d 
   end_date=$(date -d ${start_date}"+2 day") 
@@ -245,35 +247,46 @@ build_dir(){
   for (( i=1; i<=$3; i++ ))
   do
      echo $i
-     mkdir -p $jobdir/$i/run
-     mkdir -p $jobdir/$i/preproc
-     aws s3 cp s3://$2/input/$i/namelist.wps $jobdir/$i/preproc/
+     mkdir -p $shared_folder/$i/run/$jobdir
+     mkdir -p $shared_folde/$i/preproc
+     # make post dir
+     mkdir -p $shared_folde/$i/post/gfs_cut
+     mkdir -p $shared_folde/$i/post/gfs_excel
+     mkdir -p $shared_folde/$i/post/gfs_cdf
+#     mkdir -p $jobdir/$i/post-scripts
+
+
+     aws s3 cp s3://$2/input/$i/namelist.wps $shared_folder/$i/preproc/
      #sed -i 's/STARTDATE/'"${start_date}"'/g' $jobdir/$i/preproc/namelist.wps
      #sed -i 's/ENDDATE/'"${end_date}"'/g' $jobdir/$i/preproc/namelist.wps
-     ln -s ${WPS_DIR}/geogrid* $jobdir/$i/preproc/
-     ln -s ${WPS_DIR}/link_grib.csh $jobdir/$i/preproc/
-     ln -s ${WPS_DIR}/metgrid* $jobdir/$i/preproc/
-     ln -s ${WPS_DIR}/ungrib.exe $jobdir/$i/preproc/ungrib.exe
-     ln -s ${WPS_DIR}/ungrib/Variable_Tables/Vtable.GFS $jobdir/$i/preproc/Vtable
+     ln -s ${WPS_DIR}/geogrid* $shared_folde/$i/preproc/
+     ln -s ${WPS_DIR}/link_grib.csh $shared_folde/$i/preproc/
+     ln -s ${WPS_DIR}/metgrid* $shared_folde/$i/preproc/
+     ln -s ${WPS_DIR}/ungrib.exe $shared_folde/$i/preproc/ungrib.exe
+     ln -s ${WPS_DIR}/ungrib/Variable_Tables/Vtable.GFS $shared_folde/$i/preproc/Vtable
      cp -a ${WRF_DIR}/run $jobdir/$i/run
-     rm $jobdir/$i/run/namelist.input
-     rm $jobdir/$i/run/wrf.exe
-     rm $jobdir/$i/run/real.exe
-     aws s3 cp s3://$2/input/$i/namelist.input $jobdir/$i/run/
+#     rm $shared_folde/$i/run/namelist.input
+#     rm $shared_folde/$i/run/wrf.exe
+#     rm $shared_folde/$i/run/real.exe
+     aws s3 cp s3://$2/input/$i/namelist.input $shared_folde/$i/run/
      #sed -i 's/STARTDATE/'"${start_date}"'/g' $jobdir/$i/run/namelist.input
      #sed -i 's/ENDDATE/'"${end_date}"'/g' $jobdir/$i/run/namelist.input
-     ln -s ${WRF_DIR}/main/real.exe  $jobdir/$i/run/real.exe
-     ln -s ${WRF_DIR}/main/wrf.exe  $jobdir/$i/run/wrf.exe
+     ln -s ${WRF_DIR}/main/real.exe  $shared_folde/$i/run/real.exe
+     ln -s ${WRF_DIR}/main/wrf.exe  $shared_folde/$i/run/wrf.exe
+     # download new file from s3 to post
+
   done
-  mkdir -p $jobdir/downloads
-  cd  $jobdir/downloads
+  mkdir -p $shared_folde/post-scripts
+  aws s3 cp s3://$2/input/post-scripts/* $shared_folde/post-scripts/
+  mkdir -p $shared_folde/downloads
+  cd  $shared_folde/downloads
   gfs="gfs"
   gfs=$gfs.$y$m$d
   for i in $(seq -f "%02g"  0 3 96)
   do
      aws s3 cp --no-sign-request s3://noaa-gfs-bdp-pds/${gfs}/${h}/atmos/gfs.t${h}z.pgrb2.0p50.f0$i .
   done
-  chown -R ec2-user:ec2-user ${jobdir}
+  chown -R ec2-user:ec2-user $shared_folde
 }
 
 echo "NODE TYPE: ${cfn_node_type}"
