@@ -152,8 +152,8 @@ def post(zone, jid):
     # 当前生成的路径是不是 /fsx/2023-09-12-01/run
     template["job"]["current_working_directory"] = f"/fsx/{zone}/post-scripts/"
     # download post scripts to efs path
-    script = f"python3 /fsx/post-scripts/process_gfs.py /fsx/{zone} {output}"
-    # script += f"\naws s3 cp ../slurm-${{SLURM_JOB_ID}}.out {output}/logs/\n"
+    script = f"pip install netCDF4 geocat.comp wrf-python tqdm xarray pandas numpy\n"
+    script += f"python3 /fsx/post-scripts/process_gfs.py /fsx/{zone} {output}"
     # script += f"\naws s3 cp /fsx/{zone}/post {output}/post/ --recursive \n"
     template["script"] = script
     print(template)
