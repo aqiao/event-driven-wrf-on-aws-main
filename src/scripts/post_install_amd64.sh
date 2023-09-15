@@ -235,7 +235,8 @@ build_dir(){
   d=${ftime:8:2}
   h=${ftime:11:2}
 
-  start_date=$y-$m-$d 
+  start_date=$y-$m-$d
+  tmp_start_date=$start_date
   start_date=$(date -d ${start_date}"+1 day")
   start_date=$(date -d "${start_date}" +%Y-%m-%d)
   s_y=${start_date:0:4}
@@ -263,8 +264,8 @@ build_dir(){
      jobdir="domain_"$i
      echo $jobdir
      # It's required to use date as subfix as post handling need
-     mkdir -p $jobdir/run/$start_date
-     echo "wrf home: ${jobdir}/run/$start_date"
+     mkdir -p $jobdir/run/$tmp_start_date
+     echo "wrf home: ${jobdir}/run/${tmp_start_date}"
      # create post-handle related folder
      mkdir -p $jobdir/post/gfs_cut
      mkdir -p $jobdir/post/gfs_netcdf
@@ -303,8 +304,9 @@ build_dir(){
      ln -s ${WRF_DIR}/main/tc.exe  $jobdir/run/tc.exe
      ln -s ${WRF_DIR}/main/ndown.exe  $jobdir/run/ndown.exe  
   done
-  mkdir -p $jobdir/post-scripts
-  aws s3 cp s3://$2/input/post-scripts/* $jobdir/post-scripts/
+  mkdir -p /fsx/post-scripts
+  aws s3 cp s3://$2/input/post-scripts /fsx/post-scripts/ --recursive
+  echo "post scripts copied to /fsx/post-scripts"
   mkdir downloads
   gfs="gfs"
   gfs=$gfs.$y$m$d

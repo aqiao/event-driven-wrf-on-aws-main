@@ -119,13 +119,14 @@ def run_wrf(zone,pid):
     with open("jobs/run.sh", "r") as f:
         script = f.read()
     script += f"\naws s3 cp ../slurm-${{SLURM_JOB_ID}}.out {output}/logs/\n"
-    script += f"\naws s3 cp . {output}/wrfout/ --recursive --exclude \"*\" --include \"wrfout_*\"\n"
-    # log wrf out dir to text file to guarantee post handling can find this path
-    # we can't use date variable to get this path since it may cross day when post running
+    script += f"aws s3 cp . {output}/wrfout/ --recursive --exclude \"*\" --include \"wrfout_*\"\n"
+    script += f"mv wrfout_* ${y}-${m}-${d}"
     template["job"]["name"] = "wrf_" + zone
     template["job"]["nodes"] = 2 
     template["job"]["cpus_per_task"] = 4
     template["job"]["tasks_per_node"] = 24
+    # please note current working directory is /fsx/{zone}
+    # in run.sh script, it will change current working directory to run
     template["job"]["current_working_directory"] = f"/fsx/{zone}"
     template["job"]["dependency"] = f"afterok:{pid}"
     template["script"] = script
@@ -149,8 +150,8 @@ def post(zone, jid):
     template["job"]["nodes"] = 1
     template["job"]["name"] = f"post_"+zone
     template["job"]["dependency"] = f"afterok:{jid}"
-    # 当前生成的路径是不是 /fsx/2023-09-12-01/run
-    template["job"]["current_working_directory"] = f"/fsx/{zone}/post-scripts/"
+    # 设置当前工作路径
+    template["job"]["current_working_directory"] = f"/fsx/post-scripts/"
     # download post scripts to efs path
     script = f"pip install netCDF4 geocat.comp wrf-python tqdm xarray pandas numpy\n"
     script += f"python3 /fsx/post-scripts/process_gfs.py /fsx/{zone} {output}"
