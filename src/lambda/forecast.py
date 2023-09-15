@@ -143,18 +143,17 @@ def post(zone, jid):
     d=ftime[8:10]
     h=ftime[11:13]
     output = f"s3://{bucket}/outputs/{y}/{m}/{d}/{h}/{zone}"
-    # with open("jobs/post.sh", "r") as f:
-    #     script = f.read()
-    # script += f"\naws s3 cp --no-progress ${{grib}} {output}/${{grib}}"
-    # script += f"\naws s3 cp slurm-${{SLURM_JOB_ID}}.out {output}/logs/slurm-${{SLURM_JOB_ID}}.out\n"
+    with open("jobs/post.sh", "r") as f:
+        script = f.read()
+    script += f"python3 /fsx/post-scripts/process_gfs.py /fsx/{zone} {output}"
     template["job"]["nodes"] = 1
     template["job"]["name"] = f"post_"+zone
     template["job"]["dependency"] = f"afterok:{jid}"
     # 设置当前工作路径
     template["job"]["current_working_directory"] = f"/fsx/post-scripts/"
     # download post scripts to efs path
-    script = f"pip install netCDF4 geocat.comp wrf-python tqdm xarray pandas numpy\n"
-    script += f"python3 /fsx/post-scripts/process_gfs.py /fsx/{zone} {output}"
+    # script = f"pip install netCDF4 geocat.comp wrf-python tqdm xarray pandas numpy\n"
+
     # script += f"\naws s3 cp /fsx/{zone}/post {output}/post/ --recursive \n"
     template["script"] = script
     print(template)
