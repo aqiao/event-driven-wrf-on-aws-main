@@ -145,12 +145,12 @@ def post(zone, jid):
     output = f"s3://{bucket}/outputs/{y}/{m}/{d}/{h}/{zone}"
     with open("jobs/post.sh", "r") as f:
         script = f.read()
-    script += f"python /fsx/post-scripts/process_gfs.py /fsx/{zone} {output}"
+    script += f"python process_gfs.py /fsx/{zone} {output}"
     template["job"]["nodes"] = 1
     template["job"]["name"] = f"post_"+zone
     template["job"]["dependency"] = f"afterok:{jid}"
     # 设置当前工作路径
-    template["job"]["current_working_directory"] = f"/fsx/post-scripts/"
+    template["job"]["current_working_directory"] = f"/fsx/post-scripts/post"
     # download post scripts to efs path
     # script = f"pip install netCDF4 geocat.comp wrf-python tqdm xarray pandas numpy\n"
 
