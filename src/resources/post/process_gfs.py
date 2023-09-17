@@ -159,7 +159,7 @@ export_netcdf(ds_concat, 'GFS', date_now_str, local_gfs_netcdf_dir)
 # script += f"\naws s3 cp /fsx/{zone}/post {output}/post/ --recursive \n"
 export_log(f"**** 开始上传后处理结果文件到S3 ****", local_gfs_log_path)
 if s3_prefix.endswith('/'):
-    s3_prefix.rstrip('/')
+    s3_prefix = s3_prefix.rstrip('/')
 os.system(f"aws s3 cp {prefix}/post/gfs_cut {s3_prefix}/gfs_cut/ --recursive")
 os.system(f"aws s3 cp {prefix}/post/gfs_excel {s3_prefix}/gfs_excel/ --recursive")
 os.system(f"aws s3 cp {prefix}/post/gfs_netcdf {s3_prefix}/gfs_netcdf/ --recursive")
