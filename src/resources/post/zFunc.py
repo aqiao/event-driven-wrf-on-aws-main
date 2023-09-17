@@ -6,11 +6,14 @@ import wrf
 import os
 from zConfig import record_dir, date_now_str
 
+
 def run_cmd(cmd):
     sp.run(cmd, shell='True')
 
+
 def clean_idx(data_dir):
     run_cmd(f"rm -f {data_dir}/*.idx")
+
 
 def export_log(msg, file_path):
     run_cmd(f"echo '{msg}' >> {file_path}")
@@ -42,7 +45,7 @@ def export_excel(ds, model_name, refdate, output_dir):
 def export_excel_mean(ds, model_name, refdate, output_dir):
     '''适用于EC、GFS、Pg、Merge'''
     data_vars = list(ds.data_vars)
-    df_output = ds.isel(id=slice(None,-1)).mean('id').to_pandas()[data_vars] # 不平均tower
+    df_output = ds.isel(id=slice(None, -1)).mean('id').to_pandas()[data_vars]  # 不平均tower
     output_name = f"{model_name}_{refdate}.xlsx"
     output_path = os.path.join(output_dir, output_name)
     df_output.to_excel(output_path)
@@ -60,7 +63,7 @@ def utc_to_bjt(ds):
 def add_vars_leadhour(ds, leadhour, vars_leadhour):
     for var_leadhour in vars_leadhour:
         var_new = f"{var_leadhour}_-{leadhour}h"
-        ds[var_new] = ds[var_leadhour] - ds[var_leadhour].shift(time=4*leadhour)
+        ds[var_new] = ds[var_leadhour] - ds[var_leadhour].shift(time=4 * leadhour)
     return ds
 
 def detect_files(file_path_list, model_name, all_files, min_valid_short, min_valid_mid, log_path, record_dir):
@@ -70,13 +73,13 @@ def detect_files(file_path_list, model_name, all_files, min_valid_short, min_val
     N_file_exist = file_path_exist_list.count(True)
     record_dict = {
         'model': model_name,
-        'all': all_files, 
-        'min_valid_short': min_valid_short, 
-        'min_valid_mid': min_valid_mid, 
-        'exist': N_file_exist, 
-        'valid_short': None, 
+        'all': all_files,
+        'min_valid_short': min_valid_short,
+        'min_valid_mid': min_valid_mid,
+        'exist': N_file_exist,
+        'valid_short': None,
         'valid_mid': None,
-        }
+    }
 
     stop_flag = False
     if model_name == 'EC':
@@ -96,14 +99,15 @@ def detect_files(file_path_list, model_name, all_files, min_valid_short, min_val
             stop_flag = True
         else:
             record_dict.update({'valid_short': 1})
-    
-    record_exception(record_dict,record_dir)
-    if stop_flag:
-        raise(RuntimeError("所需文件缺失，中止程序"))
-    else:
-        return list(np.array(file_path_list)[file_path_exist_list])      
 
-def record_exception(record_dict,record_dir):
+    record_exception(record_dict, record_dir)
+    if stop_flag:
+        raise (RuntimeError("所需文件缺失，中止程序"))
+    else:
+        return list(np.array(file_path_list)[file_path_exist_list])
+
+
+def record_exception(record_dict, record_dir):
     global date_now_str
 
     file_path = os.path.join(record_dir, f"record_{date_now_str}.xlsx")
@@ -111,7 +115,6 @@ def record_exception(record_dict,record_dir):
     if not os.path.exists(file_path):
         df_empty = pd.DataFrame(None, index=['GFS', 'EC', 'Pg'], columns=column_names)
         df_empty.to_excel(file_path)
-    
     df = pd.read_excel(file_path, index_col=0)
     df.loc[record_dict['model']] = [record_dict[column_name] for column_name in column_names]
     df.to_excel(file_path)

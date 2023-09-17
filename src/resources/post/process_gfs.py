@@ -30,11 +30,13 @@ local_gfs_log_path = gfs_log_path(prefix)
 local_locat_path = locat_path(prefix)
 local_record_dir= record_dir(prefix)
 
+
 def get_varnames(file_path):
     df_varnames = pd.read_excel(file_path)
     var_surface_names = df_varnames['surface'].dropna().to_list()
     var_sigma_names = df_varnames['sigma'].dropna().to_list()
     return var_surface_names, var_sigma_names
+
 
 def yield_gfs_file_path_list():
     global date_now_str, pred_length,local_gfs_database_dir
@@ -43,6 +45,7 @@ def yield_gfs_file_path_list():
     file_name_list = [time.strftime("wrfout_d02_%Y-%m-%d_%H:00:00") for time in datetime_range]
     file_path_list = [os.path.join(local_gfs_database_dir, file_name) for file_name in file_name_list] # 预先给出，不依赖实际wrfout生成情况
     return file_path_list
+
 
 def pick_surface(wrfin, var_surface_names):
     var_surface_dict = {}
@@ -54,6 +57,7 @@ def pick_surface(wrfin, var_surface_names):
         del var_surface.attrs['projection'] # 删除信息，否则不能保存
         var_surface_dict[var_surface_name] = var_surface
     return var_surface_dict
+
 
 def pick_sigma(wrfin, var_sigma_names, target_height=300):
     # 确定小于300的最高sigma层
@@ -70,6 +74,7 @@ def pick_sigma(wrfin, var_sigma_names, target_height=300):
         del var_sigma_le_300m.attrs['projection']
         var_sigma_le_300m_dict[var_sigma_name] = var_sigma_le_300m
     return var_sigma_le_300m_dict
+
 
 def get_gfs_zindex(wrf_list, target_height):
     z_agl = wrf.getvar(wrf_list, 'height_agl', timeidx=wrf.ALL_TIMES, method='cat') # 模式高度AGL
@@ -88,11 +93,13 @@ def get_gfs_zindex(wrf_list, target_height):
                 break
     return zindex
 
+
 def export_cut(var_surface_dict, var_sigma_le_300m_dict, output_path):
     var_dict = var_surface_dict.copy()
     var_dict.update(var_sigma_le_300m_dict)
     ds = xr.Dataset(var_dict)
     ds.to_netcdf(output_path)
+
 
 def cut_gfs(file_path):
     global local_gfs_varnames_path, target_height, gfs_cut_dir
@@ -124,7 +131,6 @@ mkdir_dir_notexist(gfs_excel_dir)
 file_path_list = yield_gfs_file_path_list()
 file_path_list = detect_files(file_path_list, 'GFS', 100, 27, None, local_gfs_log_path, local_record_dir)
 
-# comments this below two lines to reduce testing time once cut file existed
 for file_path in tqdm(file_path_list):
     cut_gfs(file_path)
 
@@ -158,11 +164,12 @@ export_netcdf(ds_concat, 'GFS', date_now_str, local_gfs_netcdf_dir)
 # script += f"\naws s3 cp ../slurm-${{SLURM_JOB_ID}}.out {output}/logs/\n"
 # script += f"\naws s3 cp /fsx/{zone}/post {output}/post/ --recursive \n"
 export_log(f"**** 开始上传后处理结果文件到S3 ****", local_gfs_log_path)
+
 if s3_prefix.endswith('/'):
     s3_prefix = s3_prefix.rstrip('/')
-os.system(f"aws s3 cp {prefix}/post/gfs_cut {s3_prefix}/gfs_cut/ --recursive")
-os.system(f"aws s3 cp {prefix}/post/gfs_excel {s3_prefix}/gfs_excel/ --recursive")
-os.system(f"aws s3 cp {prefix}/post/gfs_netcdf {s3_prefix}/gfs_netcdf/ --recursive")
-os.system(f"aws s3 cp {prefix}/post/record {s3_prefix}/record/ --recursive")
-os.system(f"aws s3 cp {prefix}/post/logs {s3_prefix}/logs/ --recursive")
+os.system(f"aws s3 cp {prefix}/post/gfs_cut/ {s3_prefix}/gfs_cut/ --recursive")
+os.system(f"aws s3 cp {prefix}/post/gfs_excel/ {s3_prefix}/gfs_excel/ --recursive")
+os.system(f"aws s3 cp {prefix}/post/gfs_netcdf/ {s3_prefix}/gfs_netcdf/ --recursive")
+os.system(f"aws s3 cp {prefix}/post/record/ {s3_prefix}/record/ --recursive")
+os.system(f"aws s3 cp {prefix}/post/logs/ {s3_prefix}/logs/ --recursive")
 export_log(f"**** 处理和导出完成 ****", local_gfs_log_path)

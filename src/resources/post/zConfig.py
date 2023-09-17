@@ -9,19 +9,6 @@ date_now_str = beijing_local.strftime("%Y%m%d")
 
 pred_length = 100   # wrfout数据个数
 target_height = 300      # 固定参数不改动
-# $jobdir/$i/post add domain parameter
-# --database
-# --log
-# gfs_database_dir should be $jobdir/$i/run
-
-# gfs_varnames_path = "/hpc/stage/zhaozz/code/python/short_prepare_domains/static_data/GFSwrfout_varnames.xlsx"   # 指定输入的变量信息文件（用我发的就好）
-# gfs_database_dir = "/hpc/stage/zhaozz/code/python/short_prepare_operation/database/gfs"   #  wrfout路径，wrfout必须存放在这个路径下的日前文件夹中，例如gfs_database_dir+"/20230906/"
-# gfs_cut_database_dir = "/hpc/stage/zhaozz/code/python/short_prepare_domains/xiyang1/database/gfs_cut"   # 第一种结果路径：压缩后的wrfout
-# gfs_excel_database_dir = "/hpc/stage/zhaozz/code/python/short_prepare_domains/xiyang1/database/gfs_excel"   # 第二种结果路径：Excel文件
-# gfs_netcdf_dir = "/hpc/stage/zhaozz/code/python/short_prepare_domains/xiyang1/database/gfs_netcdf"   #  第三种结果路径：nc格式文件
-# gfs_log_path = f"/hpc/stage/zhaozz/code/python/short_prepare_domains/xiyang1/log/gfs_{date_now_str}.log"    # log路径
-# locat_path = "/hpc/stage/zhaozz/code/python/short_prepare_domains/static_data/location_xiyang1.xlsx"   # 指定输入的目标位置信息文件（用我发的就好）
-# record_dir = "/hpc/stage/zhaozz/code/python/short_prepare_domains/xiyang1/record"   # 指定输出第二种log文件路径
 
 def gfs_varnames_path(prefix):
     """
@@ -31,6 +18,7 @@ def gfs_varnames_path(prefix):
     :return: GFSwrfout_varnames.xlsx file path
     """
     return f"{prefix}/post/GFSwrfout_varnames.xlsx"
+
 
 def gfs_database_dir(prefix):
     """
@@ -42,6 +30,7 @@ def gfs_database_dir(prefix):
     """
     return f"{prefix}/run"
 
+
 def gfs_cut_database_dir(prefix):
     """
     Get compressed(cut) wrf out file path
@@ -49,6 +38,7 @@ def gfs_cut_database_dir(prefix):
     :return: compressed wrf out file path
     """
     return f"{prefix}/post/gfs_cut"
+
 
 def locat_path(prefix):
     """
@@ -69,6 +59,7 @@ def gfs_excel_database_dir(prefix):
     """
     return f"{prefix}/post/gfs_excel"
 
+
 def gfs_netcdf_dir(prefix):
     """
     Get gfs Excel file path
@@ -79,8 +70,10 @@ def gfs_netcdf_dir(prefix):
     """
     return f"{prefix}/post/gfs_netcdf"
 
+
 def gfs_log_path(prefix):
     return f"{prefix}/post/logs/gfs_{date_now_str}.log"
+
 
 def record_dir(prefix):
     return f"{prefix}/post/record"
