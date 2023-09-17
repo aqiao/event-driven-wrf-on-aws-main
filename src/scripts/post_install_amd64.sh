@@ -224,6 +224,7 @@ download_wrf_install_package() {
   chown -R ec2-user:ec2-user ${shared_folder}
 }
 
+# guarantee current current dir is /fsx
 build_dir(){
   local ftime=$1
   local bucket_name=$2
@@ -264,13 +265,13 @@ build_dir(){
      jobdir="domain_"$i
      echo $jobdir
      # It's required to use date as subfix as post handling need
-     mkdir -p $jobdir/run/$tmp_start_date
+#     mkdir -p $jobdir/run
      echo "wrf home: ${jobdir}/run/${tmp_start_date}"
      # create post-handle related folder
      mkdir -p $jobdir/post/gfs_cut
      mkdir -p $jobdir/post/gfs_netcdf
      mkdir -p $jobdir/post/gfs_excel
-     mkdir -p $jobdir/post/log
+     mkdir -p $jobdir/post/logs
      mkdir -p $jobdir/post/record
      # create pre-proc folder
      mkdir -p $jobdir/preproc
@@ -302,7 +303,9 @@ build_dir(){
      ln -s ${WRF_DIR}/main/real.exe  $jobdir/run/real.exe
      ln -s ${WRF_DIR}/main/wrf.exe  $jobdir/run/wrf.exe
      ln -s ${WRF_DIR}/main/tc.exe  $jobdir/run/tc.exe
-     ln -s ${WRF_DIR}/main/ndown.exe  $jobdir/run/ndown.exe  
+     ln -s ${WRF_DIR}/main/ndown.exe  $jobdir/run/ndown.exe
+     aws s3 cp s3://${bucket_name}/input/$jobdir/GFSwrfout_varnames.xlsx $jobdir/post/
+     aws s3 cp s3://${bucket_name}/input/$jobdir/locations.xlsx $jobdir/post/
   done
   mkdir -p /fsx/post-scripts
   aws s3 cp s3://$2/input/post-scripts /fsx/post-scripts/ --recursive

@@ -69,7 +69,7 @@ def fini(ids):
     m=ftime[5:7]
     d=ftime[8:10]
     h=ftime[11:13]
-    output = f"s3://{bucket}/outputs/{y}/{m}/{d}/{h}"    
+    output = f"s3://{bucket}/outputs/{y}{m}{d}"
     with open("jobs/fini.sh", "r") as f:
         script = f.read()
     script += f"\naws s3 cp forecast.done {output}/forecast.done"
@@ -91,7 +91,7 @@ def preproc(zone):
     m=ftime[5:7]
     d=ftime[8:10]
     h=ftime[11:13]
-    output = f"s3://{bucket}/outputs/{y}/{m}/{d}/{h}/{zone}"
+    output = f"s3://{bucket}/outputs/{y}{m}{d}/{zone}"
     with open("jobs/pre.sh", "r") as f:
         script = f.read()
     script += f"\naws s3 cp slurm-${{SLURM_JOB_ID}}.out {output}/logs/\n"
@@ -115,7 +115,7 @@ def run_wrf(zone,pid):
     m=ftime[5:7]
     d=ftime[8:10]
     h=ftime[11:13]
-    output = f"s3://{bucket}/outputs/{y}/{m}/{d}/{h}/{zone}"
+    output = f"s3://{bucket}/outputs/{y}{m}{d}/{zone}"
     with open("jobs/run.sh", "r") as f:
         script = f.read()
     script += f"\naws s3 cp ../slurm-${{SLURM_JOB_ID}}.out {output}/logs/\n"
@@ -142,7 +142,7 @@ def post(zone, jid):
     m=ftime[5:7]
     d=ftime[8:10]
     h=ftime[11:13]
-    output = f"s3://{bucket}/outputs/{y}/{m}/{d}/{h}/{zone}"
+    output = f"s3://{bucket}/outputs/{y}{m}{d}/{zone}"
     with open("jobs/post.sh", "r") as f:
         script = f.read()
     script += f"python process_gfs.py /fsx/{zone} {output}"
@@ -150,11 +150,7 @@ def post(zone, jid):
     template["job"]["name"] = f"post_"+zone
     template["job"]["dependency"] = f"afterok:{jid}"
     # 设置当前工作路径
-    template["job"]["current_working_directory"] = f"/fsx/post-scripts/post"
-    # download post scripts to efs path
-    # script = f"pip install netCDF4 geocat.comp wrf-python tqdm xarray pandas numpy\n"
-
-    # script += f"\naws s3 cp /fsx/{zone}/post {output}/post/ --recursive \n"
+    template["job"]["current_working_directory"] = f"/fsx/post-scripts"
     template["script"] = script
     print(template)
     return submit(template)

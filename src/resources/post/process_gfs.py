@@ -37,11 +37,11 @@ def get_varnames(file_path):
     return var_surface_names, var_sigma_names
 
 def yield_gfs_file_path_list():
-    global date_now_str, gfs_dir
+    global date_now_str, pred_length,local_gfs_database_dir
     # 预先给出的文件列表
     datetime_range = pd.date_range(f'{date_now_str} 13:00:00', periods=pred_length, freq='1H') # 丢弃前一天
     file_name_list = [time.strftime("wrfout_d02_%Y-%m-%d_%H:00:00") for time in datetime_range]
-    file_path_list = [os.path.join(gfs_dir, file_name) for file_name in file_name_list] # 预先给出，不依赖实际wrfout生成情况
+    file_path_list = [os.path.join(local_gfs_database_dir, file_name) for file_name in file_name_list] # 预先给出，不依赖实际wrfout生成情况
     return file_path_list
 
 def pick_surface(wrfin, var_surface_names):
@@ -124,15 +124,7 @@ mkdir_dir_notexist(gfs_excel_dir)
 file_path_list = yield_gfs_file_path_list()
 file_path_list = detect_files(file_path_list, 'GFS', 100, 27, None, local_gfs_log_path, local_record_dir)
 
-# for i in tqdm(range(len(file_path_list)-1)):
-#     file_path_current, file_path_next = file_path_list[i], file_path_list[i+1]
-#     search_count = 0
-#     while os.path.exists(file_path_next) == False:
-#         search_count += 1
-#         time.sleep(wait_time)
-#         if search_count >= search_max: raise(RuntimeError('超过最大搜索轮数'))
-#     cut_gfs(file_path_current, var_surface_names, var_sigma_names, target_height, gfs_cut_dir)
-
+# comments this below two lines to reduce testing time once cut file existed
 for file_path in tqdm(file_path_list):
     cut_gfs(file_path)
 
@@ -142,7 +134,7 @@ export_log("-"*40, local_gfs_log_path)
 # %%
 ### 变量插值（合并之后）
 # 风机高度及位置信息
-turbines_info = load_WT_locat(locat_path)
+turbines_info = load_WT_locat(local_locat_path)
 select_levels = np.unique(turbines_info[-1])
 
 ds_final_list = []
@@ -162,9 +154,15 @@ ds_concat = add_vars_leadhour(ds_concat, 1, ['T2', 'tk', 'PSFC', 'pressure'])
 ds_concat = add_vars_leadhour(ds_concat, 3, ['T2', 'tk', 'PSFC', 'pressure'])
 
 export_excel(ds_concat, 'GFS', date_now_str, gfs_excel_dir)
-export_netcdf(ds_concat, 'GFS', date_now_str, gfs_netcdf_dir)
+export_netcdf(ds_concat, 'GFS', date_now_str, local_gfs_netcdf_dir)
 # script += f"\naws s3 cp ../slurm-${{SLURM_JOB_ID}}.out {output}/logs/\n"
 # script += f"\naws s3 cp /fsx/{zone}/post {output}/post/ --recursive \n"
 export_log(f"**** 开始上传后处理结果文件到S3 ****", local_gfs_log_path)
-os.system(f"aws s3 cp {prefix}/post {s3_prefix} --recursive")
+if s3_prefix.endswith('/'):
+    s3_prefix.rstrip('/')
+os.system(f"aws s3 cp {prefix}/post/gfs_cut {s3_prefix}/gfs_cut/ --recursive")
+os.system(f"aws s3 cp {prefix}/post/gfs_excel {s3_prefix}/gfs_excel/ --recursive")
+os.system(f"aws s3 cp {prefix}/post/gfs_netcdf {s3_prefix}/gfs_netcdf/ --recursive")
+os.system(f"aws s3 cp {prefix}/post/record {s3_prefix}/record/ --recursive")
+os.system(f"aws s3 cp {prefix}/post/logs {s3_prefix}/logs/ --recursive")
 export_log(f"**** 处理和导出完成 ****", local_gfs_log_path)

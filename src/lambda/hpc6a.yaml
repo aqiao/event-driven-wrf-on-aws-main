@@ -1,7 +1,7 @@
 Region: {REGION: ''}
 Image:
   Os: alinux2
-  CustomAmi: ami-035d18daa19620912
+  CustomAmi: ami-0ea89cd94f92e19b5
 Tags:
   - Key: Purpose
     Value: Event Driven Weather Forecast

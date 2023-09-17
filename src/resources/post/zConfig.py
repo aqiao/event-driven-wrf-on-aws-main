@@ -1,7 +1,11 @@
 import os.path
-import time
 
-date_now_str = time.strftime('%Y%m%d', time.localtime())
+from datetime import datetime
+from datetime import timedelta
+
+# for now we only use Beijing time to calculate
+beijing_local = datetime.utcnow() + timedelta(hours=8)
+date_now_str = beijing_local.strftime("%Y%m%d")
 
 pred_length = 100   # wrfout数据个数
 target_height = 300      # 固定参数不改动
@@ -36,7 +40,7 @@ def gfs_database_dir(prefix):
     :param prefix: /fsx/domain_1
     :return:
     """
-    return f"{prefix}/run/{date_now_str}"
+    return f"{prefix}/run"
 
 def gfs_cut_database_dir(prefix):
     """
@@ -76,7 +80,7 @@ def gfs_netcdf_dir(prefix):
     return f"{prefix}/post/gfs_netcdf"
 
 def gfs_log_path(prefix):
-    return f"{prefix}/post/log/gfs_{date_now_str}.log"
+    return f"{prefix}/post/logs/gfs_{date_now_str}.log"
 
 def record_dir(prefix):
     return f"{prefix}/post/record"
