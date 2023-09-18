@@ -120,7 +120,6 @@ def run_wrf(zone,pid):
         script = f.read()
     script += f"\naws s3 cp ../slurm-${{SLURM_JOB_ID}}.out {output}/logs/\n"
     script += f"aws s3 cp . {output}/wrfout/ --recursive --exclude \"*\" --include \"wrfout_*\"\n"
-    script += f"mv wrfout_* ${y}-${m}-${d}"
     template["job"]["name"] = "wrf_" + zone
     template["job"]["nodes"] = 2 
     template["job"]["cpus_per_task"] = 4
