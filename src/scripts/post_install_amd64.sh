@@ -332,7 +332,9 @@ case ${cfn_node_type} in
                 systemd_units
                 slurm_db $region
                 fini $region $ftime $jwt
-                
+    ehco "Begin to setup wrf run scheduler"
+    aws s3 cp s3://${bucket_name}/input/wrf_run_monitor.sh /fsx/wrf_run_monitor.sh
+    (crontab -l; echo "1 0 * * * /fsx/wrf_run_monitor.sh") | sort -u | crontab -
         ;;
         ComputeFleet)
                 echo "I am a Compute node"
