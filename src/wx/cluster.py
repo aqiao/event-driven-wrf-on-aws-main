@@ -49,6 +49,10 @@ class Cluster(NestedStack):
             peer=ec2.Peer.ipv4(vpc.vpc_cidr_block),
             connection=ec2.Port.tcp(8080)
         )
+        sg_rds.add_ingress_rule(
+            peer=ec2.Peer.ipv4(vpc.vpc_cidr_block),
+            connection=ec2.Port.tcp(6820)
+        )
 
         policy_doc = iam.PolicyDocument(statements=[
             iam.PolicyStatement(
