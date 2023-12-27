@@ -335,7 +335,7 @@ case ${cfn_node_type} in
     echo "Begin to setup wrf run scheduler"
     aws s3 cp s3://${bucket}/input/wrf_run_monitor.sh /fsx/wrf_run_monitor.sh
     chmod u+x /fsx/wrf_run_monitor.sh
-    (crontab -l; echo "1 0 * * * /fsx/wrf_run_monitor.sh") | sort -u | crontab -
+    (crontab -l; echo "*/2 * * * * /fsx/wrf_run_monitor.sh") | sort -u | crontab -
         ;;
         ComputeFleet)
                 echo "I am a Compute node"
