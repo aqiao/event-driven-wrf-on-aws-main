@@ -110,6 +110,7 @@ slurm_db() {
     --output text > /tmp/dbcreds
   export DBHOST=$(jq -r '.host' /tmp/dbcreds)
   export DBPASSWD=$(jq -r '.password' /tmp/dbcreds)
+  export DBINSTANCEID=$(jq -r '.dbInstanceIdentifier' /tmp/dbcreds)
   rm /tmp/dbcreds
 
   cat > /opt/slurm/etc/slurmdbd.conf <<- EOF
@@ -163,7 +164,8 @@ EOF
 	AccountingStoragePort=6819
 EOF
   # need to install jq
-  rds_instance_status=$(aws rds describe-db-instances --db-instance-identifier $DBHOST --region $region | jq .DBInstances[0].DBInstanceStatus)
+  echo checking rds status
+  rds_instance_status=$(aws rds describe-db-instances --db-instance-identifier $DBINSTANCEID --region $region | jq .DBInstances[0].DBInstanceStatus)
   echo $rds_instance_status
 #  while [ "$rds_instance_status" != "\"available\"" ];do
 #    sleep 1
@@ -322,7 +324,7 @@ build_dir(){
   gfs=$gfs.$y$m$d
   for i in $(seq -f "%02g"  0 3 96)
   do
-     aws s3 cp --no-sign-request s3://noaa-gfs-bdp-pds/${gfs}/${h}/atmos/gfs.t${h}z.pgrb2.0p50.f0$i downloads/
+     aws s3 cp --no-sign-request s3://noaa-gfs-bdp-pds/${gfs}/${h}/atmos/gfs.t${h}z.pgrb2.0p50.f0$i downloads/ --quiet
   done
   chown -R ec2-user:ec2-user .
 }
