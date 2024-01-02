@@ -162,14 +162,14 @@ EOF
 	AccountingStorageUser=admin
 	AccountingStoragePort=6819
 EOF
-# need to install jq
-rds_instance_status=$(aws rds describe-db-instances --db-instance-identifier $DBHOST --region $region | jq .DBInstances[0].DBInstanceStatus)
-echo $rds_instance_status
-while [ "$rds_instance_status" != "\"available\"" ];do
-  sleep 1
+  # need to install jq
   rds_instance_status=$(aws rds describe-db-instances --db-instance-identifier $DBHOST --region $region | jq .DBInstances[0].DBInstanceStatus)
   echo $rds_instance_status
-done
+#  while [ "$rds_instance_status" != "\"available\"" ];do
+#    sleep 1
+#    rds_instance_status=$(aws rds describe-db-instances --db-instance-identifier $DBHOST --region $region | jq .DBInstances[0].DBInstanceStatus)
+#    echo $rds_instance_status
+#  done
   systemctl start slurmdbd.service
   systemctl start slurmrestd.service
 }
