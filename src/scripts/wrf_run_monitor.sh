@@ -44,6 +44,7 @@ do
       if [ $latest_modified -eq $last_modified ];then
         # no file updated,let's check wrfout file number
         wrf_out_num=$(ls $run_path | grep wrfout_d* | wc -l)
+        log "Found $wrf_out_num WRF out files"
         if [ $wrf_out_num -eq $expected_wrf_out_num ];then
           # rsl_output=$(tail -1 )
           echo "all file generated"

@@ -57,7 +57,7 @@ Scheduling:
 SharedStorage:
   - Name: Ebs0
     StorageType: Ebs
-    MountDir: /apps
+    MountDir: /fsx
     EbsSettings:
       VolumeType: gp3
       DeletionPolicy: Delete
@@ -65,14 +65,14 @@ SharedStorage:
       Encrypted: false
       SnapshotId: snap-0b3dfa4d4485115e6
 
-  - Name: Fsx
-    StorageType: FsxLustre
-    MountDir: /fsx
-    FsxLustreSettings:
-      DeletionPolicy: Delete
-      StorageCapacity: 1200
-      DeploymentType: PERSISTENT_2
-      PerUnitStorageThroughput: 125
+#  - Name: Fsx
+#    StorageType: FsxLustre
+#    MountDir: /fsx
+#    FsxLustreSettings:
+#      DeletionPolicy: Delete
+#      StorageCapacity: 1200
+#      DeploymentType: PERSISTENT_2
+#      PerUnitStorageThroughput: 125
 #  - Name: Efs1
 #    StorageType: Efs
 #    MountDir: /fsx
