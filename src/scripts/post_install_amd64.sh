@@ -172,7 +172,7 @@ EOF
 #    rds_instance_status=$(aws rds describe-db-instances --db-instance-identifier $DBHOST --region $region | jq .DBInstances[0].DBInstanceStatus)
 #    echo $rds_instance_status
 #  done
-  systemctl restart slurmdctld.service
+  systemctl restart slurmctld.service
   systemctl start slurmdbd.service
   systemctl start slurmrestd.service
 
