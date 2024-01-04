@@ -165,8 +165,8 @@ EOF
 EOF
   # need to install jq
 #  echo checking rds status
-#  rds_instance_status=$(aws rds describe-db-instances --db-instance-identifier $DBINSTANCEID --region $region | jq .DBInstances[0].DBInstanceStatus)
-#  echo $rds_instance_status
+  rds_instance_status=$(aws rds describe-db-instances --db-instance-identifier $DBINSTANCEID --region $region | jq .DBInstances[0].DBInstanceStatus)
+  echo $rds_instance_status
 #  while [ "$rds_instance_status" != "\"available\"" ];do
 #    sleep 1
 #    rds_instance_status=$(aws rds describe-db-instances --db-instance-identifier $DBHOST --region $region | jq .DBInstances[0].DBInstanceStatus)
