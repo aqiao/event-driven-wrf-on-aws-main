@@ -71,29 +71,29 @@ class Template2Script:
         self.s3_client.upload_file(job_sbatch_path, self.bucket, s3_obj_name)
 
 
-if __name__ == '__main__':
-    # export AWS_ACCESS_KEY_ID=AKIAQOYARXLVYSWLBDEZ
-    # export AWS_SECRET_ACCESS_KEY=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
-    # export AWS_DEFAULT_REGION=us-east-2
-    template = {
-        "job": {
-            "name": "wrf_domain_1",
-            "nodes": 1,
-            "cpus_per_task": 4,
-            "tasks_per_node": 24,
-            "current_working_directory": "/home/ec2-user",
-            "dependency": "afterok:1:2",
-            "requeue": "false",
-            "environment": {
-                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
-                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib"
-            }
-        },
-        "script": "#!/bin/bash\nsleep 10m\necho `hostname`"
-    }
-    session = boto3.session.Session()
-    s3 = session.client("s3")
-    zone = "domain_1"
-    bucket = "test-event-driven-weather-forecast"
-    generator = Template2Script(template, 1, bucket, s3, zone)
-    generator.generate()
+# if __name__ == '__main__':
+#     # export AWS_ACCESS_KEY_ID=AKIAQOYARXLVYSWLBDEZ
+#     # export AWS_SECRET_ACCESS_KEY=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
+#     # export AWS_DEFAULT_REGION=us-east-2
+#     template = {
+#         "job": {
+#             "name": "wrf_domain_1",
+#             "nodes": 1,
+#             "cpus_per_task": 4,
+#             "tasks_per_node": 24,
+#             "current_working_directory": "/home/ec2-user",
+#             "dependency": "afterok:1:2",
+#             "requeue": "false",
+#             "environment": {
+#                 "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+#                 "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib"
+#             }
+#         },
+#         "script": "#!/bin/bash\nsleep 10m\necho `hostname`"
+#     }
+#     session = boto3.session.Session()
+#     s3 = session.client("s3")
+#     zone = "domain_1"
+#     bucket = "test-event-driven-weather-forecast"
+#     generator = Template2Script(template, 1, bucket, s3, zone)
+#     generator.generate()
