@@ -72,8 +72,8 @@ class Template2Script:
 
 
 # if __name__ == '__main__':
-#     # export AWS_ACCESS_KEY_ID=AKIAQOYARXLVYSWLBDEZ
-#     # export AWS_SECRET_ACCESS_KEY=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
+#     # export AWS_ACCESS_KEY_ID=abc
+#     # export AWS_SECRET_ACCESS_KEY=123
 #     # export AWS_DEFAULT_REGION=us-east-2
 #     template = {
 #         "job": {
