@@ -348,7 +348,7 @@ case ${cfn_node_type} in
     # upload job_monitor.sh to bucket/monitor folder first
     aws s3 cp s3://${bucket}/monitor/job_monitor.sh /fsx/monitor/job_monitor.sh
     chmod u+x /fsx/monitor/job_monitor.sh
-    (crontab -l; echo "*/2 * * * * /fsx/monitor/job_monitor.sh ${bucket} ${forecast_days}") | sort -u | crontab -
+    (crontab -l; echo "*/2 * * * * /fsx/monitor/job_monitor.sh ${bucket}") | sort -u | crontab -
         ;;
         ComputeFleet)
                 echo "I am a Compute node"

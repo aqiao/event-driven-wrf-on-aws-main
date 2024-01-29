@@ -9,7 +9,7 @@ job_monitor_log=$monitor_home/job_monitor.log
 job_record=$monitor_home/job_record
 bucket=$1
 #forecast_days=$2
-expected_wrf_file_num=$2
+expected_wrf_file_num=554
 # job prefix in slurm squeue
 PRE_JOB_PREFIX="pre"
 WRF_JOB_PREFIX="wrf"
@@ -40,9 +40,9 @@ fi
 #if [ -z $forecast_days ];then
 #  forecast_days=12
 #fi
-if [ -z "$expected_wrf_file_num" ];then
-  expected_wrf_file_num=2
-fi
+#if [ -z "$expected_wrf_file_num" ];then
+#  expected_wrf_file_num=2
+#fi
 
 # log runtime information to file job_monitor_log
 # parameter: $1 represents message will be logged
