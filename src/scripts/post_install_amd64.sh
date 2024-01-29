@@ -329,6 +329,7 @@ build_dir(){
      aws s3 cp --no-sign-request s3://noaa-gfs-bdp-pds/${gfs}/${h}/atmos/gfs.t${h}z.pgrb2.0p50.f0$i downloads/ --quiet
   done
   chown -R ec2-user:ec2-user .
+  mkdir -p /fsx/monitor
 }
 
 echo "NODE TYPE: ${cfn_node_type}"
@@ -344,9 +345,10 @@ case ${cfn_node_type} in
                 slurm_db $region
                 fini $region $ftime $jwt
     echo "Begin to setup wrf run scheduler"
-    aws s3 cp s3://${bucket}/input/wrf_run_monitor.sh /fsx/wrf_run_monitor.sh
-    chmod u+x /fsx/wrf_run_monitor.sh
-    (crontab -l; echo "*/2 * * * * /fsx/wrf_run_monitor.sh") | sort -u | crontab -
+    # upload job_monitor.sh to bucket/monitor folder first
+    aws s3 cp s3://${bucket}/monitor/job_monitor.sh /fsx/monitor/job_monitor.sh
+    chmod u+x /fsx/monitor/job_monitor.sh
+    (crontab -l; echo "*/2 * * * * /fsx/monitor/job_monitor.sh ${bucket} ${forecast_days}") | sort -u | crontab -
         ;;
         ComputeFleet)
                 echo "I am a Compute node"

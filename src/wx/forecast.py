@@ -31,6 +31,7 @@ class Forecast(NestedStack):
                 "secretsmanager:DescribeSecret",
                 "secretsmanager:ListSecretVersionIds",
                 "secretsmanager:ListSecrets",
+                "s3:*"
                 ],
             resources=["*"],
             effect=iam.Effect.ALLOW))
@@ -44,7 +45,7 @@ class Forecast(NestedStack):
                     iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
                     iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole"),
                     ],
-                inline_policies={"secretsmanager": policy_doc},
+                inline_policies={"forecast": policy_doc},
         )
 
         layer = λ.LayerVersion(self, "lambda_layer",

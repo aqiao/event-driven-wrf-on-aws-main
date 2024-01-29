@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
-
+import io
 from functools import lru_cache
 import os
 import time
@@ -8,12 +8,14 @@ import boto3
 import botocore
 import json
 import requests
+from template2sh import Template2Script
 
 #region = os.getenv("AWS_REGION")
 ip = "127.0.0.1"
 bucket = os.getenv("BUCKET_NAME")
 job_num= int(os.getenv("DOMAINS_NUM"))
 ftime = "2023-01-01:12:00:00Z"
+
 template = {
     "job": {
         "name":"",
@@ -30,12 +32,21 @@ template = {
     "script": ""
 }
 
+
+@lru_cache
+def s3client():
+    session = boto3.session.Session()
+    s3 = session.client("s3")
+    return s3
+
+
 @lru_cache
 def token():
     session = boto3.session.Session()
     sm = session.client('secretsmanager')
     secret = sm.get_secret_value(SecretId="JWTKey")
     return secret['SecretString']
+
 
 @lru_cache
 def headers():
@@ -44,6 +55,7 @@ def headers():
             "X-SLURM-USER-TOKEN": token(),
             "content-type": "application/json",
             }
+
 
 def submit(data):
     global ip
@@ -55,12 +67,14 @@ def submit(data):
     print(resp.status_code)
     return jid
 
+
 def status(jobid):
     global ip
     url = f"http://{ip}:8080/slurm/v0.0.37/job/{jobid}"
     resp = requests.get(url, headers=headers())
     print(resp)
     return resp.json()
+
 
 def fini(ids):
     global bucket
@@ -81,7 +95,10 @@ def fini(ids):
     template["job"]["dependency"] = f"afterok:{':'.join([str(x) for x in ids])}"
     template["script"] = script
     print(template)
-    return submit(template)
+
+    job_id = submit(template)
+    # Template2Script(template, job_id)
+    return job_id
 
     
 def preproc(zone):
@@ -106,9 +123,13 @@ def preproc(zone):
     template["job"]["current_working_directory"] = f"/fsx/{zone}"
     template["script"] = script
     print(template)
-    return submit(template)
+    job_id = submit(template)
+    s3 = s3client()
+    Template2Script(template, job_id, bucket,s3, zone)
+    return job_id
 
-def run_wrf(zone,pid):
+
+def run_wrf(zone, pid):
     global bucket
     global ftime
     y=ftime[0:4]
@@ -130,7 +151,10 @@ def run_wrf(zone,pid):
     template["job"]["dependency"] = f"afterok:{pid}"
     template["script"] = script
     print(template)
-    return submit(template)
+    job_id = submit(template)
+    s3 = s3client()
+    Template2Script(template, job_id, bucket, s3, zone)
+    return job_id
     
 
 # 当前工作目录是 /fsx吗
@@ -152,7 +176,10 @@ def post(zone, jid):
     template["job"]["current_working_directory"] = f"/fsx/post-scripts"
     template["script"] = script
     print(template)
-    return submit(template)
+    job_id = submit(template)
+    s3 = s3client()
+    Template2Script(template, job_id, bucket, s3, zone)
+    return job_id
 
 
 def main(event, context):
