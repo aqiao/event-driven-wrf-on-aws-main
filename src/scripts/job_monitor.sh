@@ -69,22 +69,27 @@ clear_legacy_file(){
 }
 
 reach_max_retry(){
-  job_name=$1
-  log "Running pre-check before retry job $job_name"
+  job_id=$1
+  job_name=$2
+  if [ -z "job_id" ];then
+    log "Job id is empty, check failed"
+    return 1
+  fi
   if [ -z "$job_name" ];then
     log "Job name is empty, check failed"
     return 1
   fi
-  retry_number=$(grep "$job_name" "$job_record" | awk '{print $4}')
+  record_id="${job_name}_${job_id}"
+  log "Running pre-check before retry job $record_id"
+  retry_number=$(grep "$record_id" "$job_record" | awk '{print $4}')
   if [ -z "$retry_number" ];then
     retry_number=0
   fi
   if [ $retry_number -ge $MAX_RETRY_NUM ];then
     log "Job $job_name retry times ($retry_number) reached max retry number $MAX_RETRY_NUM for $job_name, check failed"
     return 1
-  else
-    return 0
   fi
+  return 0
 }
 
 retry_pre_job(){
@@ -92,7 +97,7 @@ retry_pre_job(){
   log "Running specific pre option for job $job_name."
   log "Overriding namelist files with backup ones for job $job_name."
   domain_name=$(echo $job_name | awk -F '_' '{printf "%s_%s",$2,$3}')
-  aws s3 cp "s3://$bucket/input/${domain_name}_backup/namelist.wps" "$root_dir/${domain_name}/${PRE_JOB_FOLDER}/"
+  aws s3 cp "s3://$bucket/input/${domain_name}_backup/namelist.wps" "$root_dir/${domain_name}/${PRE_JOB_FOLDER}/" --quiet
 }
 
 retry_wrf_job(){
@@ -100,8 +105,8 @@ retry_wrf_job(){
   log "Running specific wrf option for job $job_name."
   domain_name=$(echo $job_name | awk -F '_' '{printf "%s_%s",$2,$3}')
   log "Overriding namelist files with backup ones for domain $domain_name"
-  aws s3 cp "s3://${bucket}/input/${domain_name}_backup/namelist.wps" "${root_dir}/${domain_name}/${PRE_JOB_FOLDER}/"
-  aws s3 cp "s3://${bucket}/input/${domain_name}_backup/namelist.input" "${root_dir}/${domain_name}/${WRF_JOB_FOLDER}/"
+  aws s3 cp "s3://${bucket}/input/${domain_name}_backup/namelist.wps" "${root_dir}/${domain_name}/${PRE_JOB_FOLDER}/" --quiet
+  aws s3 cp "s3://${bucket}/input/${domain_name}_backup/namelist.input" "${root_dir}/${domain_name}/${WRF_JOB_FOLDER}/" --quiet
   clear_legacy_file $domain_name
 }
 
@@ -116,12 +121,13 @@ retry_fini_job(){
 }
 
 update_retry_num(){
-  job_name=$1
-  log "Updating retry number for job $job_name"
+  job_id=$1
+  job_name=$2
+  record_id="${job_name}_${job_id}"
+  log "Updating retry number for job $record_id"
   domain_name=$(echo $job_name | awk -F '_' '{printf "%s_%s\n",$2,$3}')
   run_path="${root_dir}/${domain_name}/${WRF_JOB_FOLDER}"
-  retry_number=$(grep "$job_name" "$job_record" | awk '{printf $4}')
-  log "Current retry_number: $retry_number"
+  retry_number=$(grep "$record_id" "$job_record" | awk '{printf $4}')
   latest_wrf_file_num=$(ls $run_path | grep wrfout_d | wc -l)
   if [ $latest_wrf_file_num -eq 0 ];then
     latest_modified=0
@@ -129,20 +135,14 @@ update_retry_num(){
     latest_modified=$(ls -1 ${run_path}/wrfout_d* -t | head -n 1 | xargs stat -c %Y)
   fi
   if [ -z "$retry_number" ];then
+    log "$retry_number is initialized to 0 for job ${record_id}"
     retry_number=$MAX_RETRY_NUM
   else
     log "Adding one to current retry $retry_number in domain $domain_name"
     ((retry_number++))
     log "latest retry number $retry_number"
   fi
-  sed_command="s/^${job_name}.*/${job_name} ${latest_modified} ${latest_wrf_file_num} ${retry_number}/"
-  log "Will run sed command: sed -i $sed_command"
-  sed -i "$sed_command" $job_record
-  if [ $? -eq 0 ];then
-   log "Retry number update succeeded for $domain_name"
-  else
-   log "Retry number update failed for $domain_name"
-  fi
+  update_job_record ${record_id} ${latest_modified} ${latest_wrf_file_num} ${retry_number}
 }
 
 scan_failed_job(){
@@ -163,7 +163,7 @@ retry_failed_job(){
   job_reason=${job_props[3]}
   # if there is more pre-check such as reach_max_retry in the further
   # we can extract a specific method like running_wrf_retry_precheck
-  reach_max_retry $job_name
+  reach_max_retry $job_id $job_name
   if [ $? -eq 1 ];then
     echo ""
     return 1
@@ -174,14 +174,6 @@ retry_failed_job(){
 retry_common(){
   job_name=$1
   job_id=$2
-  if [ -z "$job_name" ];then
-    log "Please specify job name as the first param for retry method"
-    return 1
-  fi
-  if [ -z "$job_id" ];then
-    log "Please specify job id as the second param for retry method"
-    return 1
-  fi
   log "Retrying failed job $job_name"
   job_prefix=$(echo $job_name | awk -F '_' '{print $1}')
   func_name="retry_${job_prefix}_job"
@@ -191,7 +183,7 @@ retry_common(){
   log "Got new job id after retry $new_job_id"
   if [ -n "$new_job_id" ];then
     update_job_dependency $job_id $new_job_id
-    update_retry_num $job_name
+    update_retry_num $job_id $job_name
     log "Job $job_name retry succeeded"
   fi
 }
@@ -203,12 +195,13 @@ resubmit(){
   sbatch_file="${monitor_home}/${job_name}.sh"
   if [ ! -f $sbatch_file ];then
     log "Downloading sbatch script ${job_name}.sh for job $job_id"
-    aws s3 cp "s3://$bucket/monitor/${job_name}.sh" $monitor_home
-    aws s3 cp "s3://$bucket/monitor/${job_name}_script.sh" $monitor_home
+    aws s3 cp "s3://$bucket/monitor/${job_name}.sh" $monitor_home --quiet
+    aws s3 cp "s3://$bucket/monitor/${job_name}_script.sh" $monitor_home --quiet
   fi
   # in case download failed, let's check it again
   if [ -f $sbatch_file ];then
     result=$(sbatch $sbatch_file)
+    log "sbatch running result $result after resubmit"
     if [ $? -eq 0 ];then
       new_job_id=$(echo "$result" | grep -oP [0-9]+)
       log "Job $job_id resubmit succeeded, new job id is $new_job_id"
@@ -224,8 +217,18 @@ resubmit(){
 }
 
 running_job_retry_precheck(){
-  job_name="$1"
-  log "Checking if job $job_name is wrf job"
+  job_id=$1
+  job_name="$2"
+  if [ -z "$job_id" ];then
+    log "Please specify job id as the first param for function running_job_retry_precheck"
+    return 1
+  fi
+  if [ -z "$job_name" ];then
+    log "Please specify job name as the second param for function running_job_retry_precheck"
+    return 1
+  fi
+  record_id="${job_name}_${job_id}"
+  log "Checking if job $record_id is wrf job"
   wrf_job_name=$(echo "$job_name" | grep "^$WRF_JOB_PREFIX")
   if [ -z "$wrf_job_name" ];then
     log "Job $job_name is not a wrf job"
@@ -239,11 +242,22 @@ running_job_retry_precheck(){
   else
     latest_modified=$(ls -1 ${run_path}/wrfout_d* -t | head -n 1 | xargs stat -c %Y)
   fi
-  record=$(grep "$job_name" "$job_record")
+  record=$(grep "$record_id" "$job_record")
+  log "Checking if record $record is empty"
+  if [ -z "$record" ];then
+    last_modified=0
+    last_wrf_file_num=0
+    retry_number=0
+  else
+    job_props=($record)
+    last_modified=${job_props[1]}
+    last_wrf_file_num=${job_props[2]}
+    retry_number=${job_props[3]}
+  fi
+  # since we have gotten last record per job, let's update job record with latest value
+  update_job_record $record_id $latest_modified $latest_wrf_file_num $retry_number
   log "Detecting if wrf out files increased from job record $record for job  $job_name"
-  job_props=($record)
-  last_modified=${job_props[1]}
-  last_wrf_file_num=${job_props[2]}
+
   log "Comparing last_modified: $last_modified, latest_modified: $latest_modified for job $job_name"
   if [ $last_modified -eq $latest_modified ];then
     if [ $latest_wrf_file_num -eq 0 ];then
@@ -254,7 +268,7 @@ running_job_retry_precheck(){
       log "Current wrf out file number reaches expected $latest_wrf_file_num for job $job_name"
       return 1
     fi
-    reach_max_retry $job_name
+    reach_max_retry $job_id $job_name
     if [ $? -eq 1 ];then
       # reached max retry number
       return 1
@@ -265,44 +279,25 @@ running_job_retry_precheck(){
   return 1
 }
 
-init_job_record(){
-  domain_name=$1
-  log "Initializing record information in $domain_name"
-  pre_job_prefix="${PRE_JOB_PREFIX}_${domain_name}"
-  wrf_job_prefix="${WRF_JOB_PREFIX}_${domain_name}"
-  post_job_prefix="${POST_JOB_PREFIX}_${domain_name}"
-  fini_job_prefix="${FINISH_JOB_PREFIX}_${domain_name}"
-  last_wrf_file_num=0
-  last_modified=0
-  retry_num=0
-  echo "$pre_job_prefix $last_modified $last_wrf_file_num $retry_num" >> $job_record
-  echo "$wrf_job_prefix $last_modified $last_wrf_file_num $retry_num" >> $job_record
-  echo "$post_job_prefix $last_modified $last_wrf_file_num $retry_num" >> $job_record
-  echo "$fini_job_prefix $last_modified $last_wrf_file_num $retry_num" >> $job_record
-}
-
 update_job_record(){
-  domain_name=$1
-  job_name="${WRF_JOB_PREFIX}_${domain_name}"
-  log "Updating wrf out file number for job $job_name in $domain_name"
-  run_path="${root_dir}/${domain_name}/${WRF_JOB_FOLDER}"
-  latest_wrf_file_num=$(ls $run_path | grep wrfout_d | wc -l)
-  if [ $latest_wrf_file_num -eq 0 ];then
-    latest_modified=0
+  record_id=$1
+  latest_modified=$2
+  latest_wrf_file_num=$3
+  retry_number=$4
+  record=$(grep "${record_id}" "${job_record}")
+  log "Handling record $record_id with latest_modified: $latest_modified, latest_wrf_file_num: $latest_wrf_file_num, retry_number: $retry_number"
+  if [ -n "$record" ];then
+    sed_command="s/^${record_id}.*/${record_id} ${latest_modified} ${latest_wrf_file_num} ${retry_number}/"
+    log "Will run below command: sed -i $sed_command"
+    sed -i "$sed_command" $job_record
+    if [ $? -eq 0 ];then
+     log "Job record update succeeded"
+    else
+     log "Job record update failed"
+    fi
   else
-    latest_modified=$(ls -1 ${run_path}/wrfout_d* -t | head -n 1 | xargs stat -c %Y)
-  fi
-  retry_number=$(grep "$job_name" "$job_record" | awk '{printf $4}')
-  if [ -z "$retry_number" ];then
-    retry_number=0
-  fi
-  sed_command="s/^${job_name}.*/${job_name} ${latest_modified} ${latest_wrf_file_num} ${retry_number}/"
-  log "Will run below command: sed -i $sed_command"
-  sed -i "$sed_command" $job_record
-  if [ $? -eq 0 ];then
-   log "WRF out file number updated to $latest_wrf_file_num for $domain_name"
-  else
-   log "WRF out file number update failed for $domain_name"
+    echo "$record_id $latest_modified $latest_wrf_file_num $retry_number" >> $job_record
+    log "Job record creation succeeded"
   fi
 }
 
@@ -321,8 +316,8 @@ retry_running_wrf_job(){
   job_props=($job)
   job_id=${job_props[0]}
   job_name=${job_props[1]}
-  log "Doing pre-check for job $job_name"
-  pre_check=$(running_job_retry_precheck $job_name)
+  log "Doing pre-check for job $job_name ($job_id)"
+  pre_check=$(running_job_retry_precheck $job_id $job_name)
   if [ $? -eq 0 ];then
     log "Cancelling wrf job $job_id"
     scancel $job_id
@@ -340,9 +335,6 @@ update_job_dependency(){
   output_fields="%.i %.j %.E %.R"
   job_status="PD"
   expected_pending_reason="(DependencyNeverSatisfied)"
-  # NOTE, even though we just wanna filter pending jobs caused by DependencyNeverSatisfied
-  # when a job starting, it also may be pending state if no computing resource assigned
-  # so we just check if the pending reason is DependencyNeverSatisfied further
   squeue -h -t $job_status -o "$output_fields" | while read -r pending_job;do
     log "Verifying pending job $pending_job"
     # DO not use double quote to enclose $pending_job variable, or it will not be split by space
@@ -353,10 +345,10 @@ update_job_dependency(){
     job_dependency=${job_props[2]}
     job_reason=${job_props[3]}
     log "Comparing job_reason: $job_reason, expected_pending_reason:$expected_pending_reason"
-    if [ "$job_reason" != "$expected_pending_reason" ];then
+    failed_job_id=$(echo "$job_dependency" | grep -oP [0-9]+)
+    if [ -z "$failed_job_id" ];then
       continue
     fi
-    failed_job_id=$(echo "$job_dependency" | grep -oP [0-9]+)
     log "Comparing failed job id: $failed_job_id, depended job id: $old_job_id"
     if [ $failed_job_id -eq $old_job_id ];then
       log "Found depending job $job_id and the pending reason is $job_reason"
@@ -373,32 +365,13 @@ update_job_dependency(){
 
 # main thread begin
 if [ ! -f $job_record ];then
-  log "Creating job record file $job_record for $domain_name"
+  log "Creating job record file $job_record"
   touch $job_record
 fi
-domain_num=$(ls -1d $root_dir/domain_* 2>/dev/null | wc -l)
-log "Detected domain number $domain_num"
-if [ $domain_num -eq 0 ];then
-  log "No domain folders found under $root_dir, will check in the next loop"
-  exit 0
-fi
-# remember to add 1d option, or it will list subfolder in domain_x
-domains=$(ls -1d $root_dir/domain_*)
-ls -1d $root_dir/domain_* | while read -r domain
-do
-  domain_name=$(basename $domain)
-  log "Checking job status for $domain_name"
-  domain_record=$(grep "$domain_name" "$job_record")
-  # check if domain record is existed
-  if [ -n "$domain_record" ];then
-    update_job_record $domain_name
-  else
-    init_job_record $domain_name
-  fi
-done
+
 scan_failed_job
 scan_running_wrf_job
 # upload log and record file to s3 for further troubleshooting
-aws s3 cp $job_monitor_log "s3://$bucket/monitor/"
-aws s3 cp $job_record "s3://$bucket/monitor/"
+#aws s3 cp $job_monitor_log "s3://$bucket/output/" --quiet
+#aws s3 cp $job_record "s3://$bucket/monitor/" --quiet
 # main thread end
