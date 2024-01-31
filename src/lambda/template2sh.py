@@ -52,12 +52,12 @@ class Template2Script:
 
     def script_generator(self, file_pointer, template_dict):
         script_content = template_dict['script']
-        job_script_path = r'./{}_script.sh'.format(self.prefix)
+        job_script_path = r'{}/{}_script.sh'.format(self.local_dir, self.prefix)
         s3_obj_name = "monitor/{}_script.sh".format(self.prefix)
         with open(job_script_path, 'w') as script_pointer:
             script_pointer.write(script_content)
         self.s3_client.upload_file(job_script_path, self.bucket, s3_obj_name)
-        file_pointer.write("source {}\n".format(job_script_path))
+        file_pointer.write("source ./{}\n".format(self.prefix))
 
     def generate(self):
         job_sbatch_path = r'{}/{}.sh'.format(self.local_dir, self.prefix)
