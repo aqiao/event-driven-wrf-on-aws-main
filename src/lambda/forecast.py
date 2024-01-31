@@ -36,8 +36,8 @@ template = {
 @lru_cache
 def s3client():
     session = boto3.session.Session()
-    s3 = session.client("s3")
-    return s3
+    s3_client = session.client("s3")
+    return s3_client
 
 
 @lru_cache
@@ -97,7 +97,9 @@ def fini(ids):
     print(template)
 
     job_id = submit(template)
-    # Template2Script(template, job_id)
+    s3_client = s3client()
+    convert = Template2Script(template, job_id, bucket, s3_client)
+    convert.generate()
     return job_id
 
     
@@ -124,8 +126,9 @@ def preproc(zone):
     template["script"] = script
     print(template)
     job_id = submit(template)
-    s3 = s3client()
-    Template2Script(template, job_id, bucket,s3, zone)
+    s3_client = s3client()
+    convert = Template2Script(template, job_id, bucket, s3_client, zone)
+    convert.generate()
     return job_id
 
 
@@ -152,8 +155,9 @@ def run_wrf(zone, pid):
     template["script"] = script
     print(template)
     job_id = submit(template)
-    s3 = s3client()
-    Template2Script(template, job_id, bucket, s3, zone)
+    s3_client = s3client()
+    convert = Template2Script(template, job_id, bucket, s3_client, zone)
+    convert.generate()
     return job_id
     
 
@@ -177,8 +181,9 @@ def post(zone, jid):
     template["script"] = script
     print(template)
     job_id = submit(template)
-    s3 = s3client()
-    Template2Script(template, job_id, bucket, s3, zone)
+    s3_client = s3client()
+    convert = Template2Script(template, job_id, bucket, s3_client, zone)
+    convert.generate()
     return job_id
 
 
