@@ -26,8 +26,13 @@ class Template2Script:
             "job": "job_options_generator",
             "script": "script_generator"
         }
-
-        self.prefix = "{}".format(job_template["job"]["name"])
+        job_name = job_template["job"]["name"]
+        job_name_parts = job_name.split('_')
+        if len(job_name_parts) == 4:
+            # remove the last one, since we will append real job id as the last one
+            job_name_parts.pop()
+            job_name = "_".join(job_name_parts)
+        self.prefix = "{}_{}".format(job_name, self.job_id)
         self.s3_client = s3_client
 
     def job_options_generator(self, file_pointer, template_dict):
@@ -71,29 +76,29 @@ class Template2Script:
         self.s3_client.upload_file(job_sbatch_path, self.bucket, s3_obj_name)
 
 
-# if __name__ == '__main__':
-#     # export AWS_ACCESS_KEY_ID=abc
-#     # export AWS_SECRET_ACCESS_KEY=123
-#     # export AWS_DEFAULT_REGION=us-east-2
-#     template = {
-#         "job": {
-#             "name": "wrf_domain_1",
-#             "nodes": 1,
-#             "cpus_per_task": 4,
-#             "tasks_per_node": 24,
-#             "current_working_directory": "/home/ec2-user",
-#             "dependency": "afterok:1:2",
-#             "requeue": "false",
-#             "environment": {
-#                 "PATH": "/bin:/usr/bin/:/usr/local/bin/",
-#                 "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib"
-#             }
-#         },
-#         "script": "#!/bin/bash\nsleep 10m\necho `hostname`"
-#     }
-#     session = boto3.session.Session()
-#     s3 = session.client("s3")
-#     zone = "domain_1"
-#     bucket = "test-event-driven-weather-forecast"
-#     generator = Template2Script(template, 1, bucket, s3, zone)
-#     generator.generate()
+if __name__ == '__main__':
+    # export AWS_ACCESS_KEY_ID=abc
+    # export AWS_SECRET_ACCESS_KEY=123
+    # export AWS_DEFAULT_REGION=us-east-2
+    template = {
+        "job": {
+            "name": "wrf_domain_1",
+            "nodes": 1,
+            "cpus_per_task": 4,
+            "tasks_per_node": 24,
+            "current_working_directory": "/home/ec2-user",
+            "dependency": "afterok:1:2",
+            "requeue": "false",
+            "environment": {
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib"
+            }
+        },
+        "script": "#!/bin/bash\nsleep 10m\necho `hostname`"
+    }
+    session = boto3.session.Session()
+    s3 = session.client("s3")
+    zone = "domain_1"
+    bucket = "test-event-driven-weather-forecast"
+    generator = Template2Script(template, 1, bucket, s3, zone)
+    generator.generate()
